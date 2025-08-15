@@ -19,9 +19,12 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Unique;
 
+// use App\Filament\Clusters\SystemCluster;
+
 class RoleResource extends Resource implements HasShieldPermissions
 {
     use HasShieldFormComponents;
+    // protected static ?string $cluster = SystemCluster::class;
 
     protected static ?string $navigationGroup = 'Sistema';
 

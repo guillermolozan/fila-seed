@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Enums\FiltersLayout;
 use Carbon\Carbon;
 
+// use App\Filament\Clusters\SystemCluster;
+
 // use App\Filament\Components\Controller;
 
 // use Filament\Support\Enums\Alignment;
@@ -19,7 +21,7 @@ use Carbon\Carbon;
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
-
+    // protected static ?string $cluster = SystemCluster::class;
     protected static ?string $pluralModelLabel = 'usuarios';
 
     protected static ?string $modelLabel = 'usuario';
