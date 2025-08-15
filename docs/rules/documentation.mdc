@@ -7,16 +7,16 @@ alwaysApply: false
 # Estándares de Documentación
 
 ## Ubicación de Documentos
-- **Siempre** crear documentos en la carpeta `Docs/`
+- **Siempre** crear documentos en la carpeta `docs/`
 - **Nunca** crear documentación en otras ubicaciones
 - Usar subcarpetas organizadas por tema cuando sea apropiado
 
 ## Tipos de Documentación
-- **`Docs/tech.md`** - Documentación técnica general
-- **`Docs/api.md`** - Documentación de APIs
-- **`Docs/setup.md`** - Guías de instalación y configuración
-- **`Docs/architecture.md`** - Arquitectura del sistema
-- **`Docs/deployment.md`** - Guías de deployment
+- **`docs/tech.md`** - Documentación técnica general
+- **`docs/api.md`** - Documentación de APIs
+- **`docs/setup.md`** - Guías de instalación y configuración
+- **`docs/architecture.md`** - Arquitectura del sistema
+- **`docs/deployment.md`** - Guías de deployment
 
 ## Formato de Documentación
 - Usar Markdown para todos los documentos
@@ -37,4 +37,3 @@ alwaysApply: false
 - Usar para scripts de prueba, análisis o tareas temporales
 - Limpiar archivos temporales regularmente
 - No incluir en control de versiones
-

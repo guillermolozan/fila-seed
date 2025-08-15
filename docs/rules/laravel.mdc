@@ -1,0 +1,786 @@
+---
+alwaysApply: false
+---
+# Reglas y Mejores Prácticas para Laravel 11
+
+# Reglas de Desarrollo Laravel
+
+## Convenciones de Código
+- Usar PSR-4 autoloading
+- Seguir convenciones de Laravel para nombres de archivos y directorios
+- Usar Eloquent ORM para operaciones de base de datos
+- Implementar validación en Form Requests cuando sea apropiado
+- Usar Resource Controllers para operaciones CRUD estándar
+
+## Filament y Librerías
+- Crear recursos usando `php artisan make:filament-resource`
+- Crear páginas usando `php artisan make:filament-page`
+- Seguir las mejores prácticas de Filament para formularios y tablas
+- Usar políticas de autorización con **Filament Shield** (`bezhansalleh/filament-shield`)
+- Implementar editor de texto rico con **Filament TinyEditor** (`amidesfahani/filament-tinyeditor`)
+- Usar **Laravel Tinker** (`tinker`) para debugging y exploración de datos
+
+## Base de Datos
+- Crear migraciones con `php artisan make:migration`
+- Usar seeders para datos de prueba
+- Implementar factories para testing
+
+## 📋 Estructura del Proyecto CRM Incapower
+
+### Organización de Directorios
+```
+app/
+├── Console/           # Comandos Artisan personalizados
+├── Exceptions/        # Manejo de excepciones
+├── Filament/          # Panel administrativo Filament
+├── Helpers/           # Funciones helper personalizadas
+├── Http/              # Controladores, middleware, requests
+├── Livewire/          # Componentes Livewire
+├── Models/            # Modelos Eloquent
+├── Policies/          # Políticas de autorización
+├── Providers/         # Proveedores de servicios
+├── Services/          # Lógica de negocio
+└── View/              # Vistas Blade
+```
+
+## 🎯 Reglas Generales
+
+### 1. Nomenclatura y Convenciones
+- **Modelos**: Nombres en inglés, singular y PascalCase (ej: `User`, `Client`, `Service`)
+- **Controladores**: Sufijo `Controller` (ej: `ClientController`, `UserController`)
+- **Migrations**: Nombres descriptivos con timestamp (ej: `2024_01_15_create_clients_table`)
+- **Seeders**: Sufijo `Seeder` (ej: `ClientSeeder`, `UserSeeder`)
+- **Factories**: Sufijo `Factory` (ej: `ClientFactory`, `UserFactory`)
+
+### 2. Estándares de Código
+- Usar PSR-12 para estilo de código
+- Implementar Laravel Pint para formateo automático
+- Seguir convenciones de Laravel para nombres de métodos y propiedades
+
+## 🏗️ Arquitectura y Patrones
+
+### 1. Estructura de Modelos
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Client extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'email',
+        'phone',
+        'seller_id',
+        'status',
+        'contact_method_id',
+        'geo_province_id',
+        'geo_department_id',
+        'geo_district_id',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
+    ];
+
+    // Relaciones
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(UserSeller::class, 'seller_id');
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(Activity::class);
+    }
+
+    public function province(): BelongsTo
+    {
+        return $this->belongsTo(GeoProvince::class, 'geo_province_id');
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    public function scopeForSeller($query, $sellerId)
+    {
+        return $query->where('seller_id', $sellerId);
+    }
+
+    // Accessors y Mutators
+    public function getFullAddressAttribute(): string
+    {
+        return collect([
+            $this->province?->name,
+            $this->department?->name,
+            $this->district?->name,
+        ])->filter()->implode(', ');
+    }
+}
+```
+
+### 2. Servicios y Lógica de Negocio
+```php
+<?php
+
+namespace App\Services;
+
+use App\Models\Client;
+use App\Models\Activity;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class ClientService
+{
+    public function createClientWithActivities(array $data): Client
+    {
+        return DB::transaction(function () use ($data) {
+            // Crear cliente
+            $client = Client::create($data);
+            
+            // Crear actividad inicial
+            Activity::create([
+                'client_id' => $client->id,
+                'description' => 'Cliente creado',
+                'type' => 'creation',
+                'user_id' => auth()->id(),
+            ]);
+
+            // Enviar email de bienvenida
+            $this->sendWelcomeEmail($client);
+            
+            Log::info('Cliente creado', ['client_id' => $client->id]);
+            
+            return $client;
+        });
+    }
+
+    public function reassignClient(Client $client, int $newSellerId): bool
+    {
+        try {
+            $oldSellerId = $client->seller_id;
+            
+            $client->update(['seller_id' => $newSellerId]);
+            
+            // Registrar actividad de reasignación
+            Activity::create([
+                'client_id' => $client->id,
+                'description' => "Cliente reasignado de vendedor {$oldSellerId} a {$newSellerId}",
+                'type' => 'reassignment',
+                'user_id' => auth()->id(),
+            ]);
+            
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error al reasignar cliente', [
+                'client_id' => $client->id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    private function sendWelcomeEmail(Client $client): void
+    {
+        // Implementar envío de email
+    }
+}
+```
+
+## 🔐 Autenticación y Autorización
+
+### 1. Políticas de Usuario
+```php
+<?php
+
+namespace App\Policies;
+
+use App\Models\User;
+use App\Models\Client;
+use Illuminate\Auth\Access\HandlesAuthorization;
+
+class ClientPolicy
+{
+    use HandlesAuthorization;
+
+    public function viewAny(User $user): bool
+    {
+        return $user->hasAnyRole(['supermaster', 'master', 'jefe_nacional', 'supervisor', 'jefe', 'vendedor']);
+    }
+
+    public function view(User $user, Client $client): bool
+    {
+        if ($user->hasRole(['supermaster', 'master'])) {
+            return true;
+        }
+
+        if ($user->hasRole('vendedor')) {
+            return $client->seller_id === $user->id;
+        }
+
+        // Lógica para otros roles
+        return $this->canAccessClient($user, $client);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->hasAnyRole(['supermaster', 'master', 'jefe', 'vendedor']);
+    }
+
+    public function update(User $user, Client $client): bool
+    {
+        if ($user->hasRole(['supermaster', 'master'])) {
+            return true;
+        }
+
+        if ($user->hasRole('vendedor')) {
+            return $client->seller_id === $user->id;
+        }
+
+        return $this->canAccessClient($user, $client);
+    }
+
+    private function canAccessClient(User $user, Client $client): bool
+    {
+        // Implementar lógica específica por rol
+        return false;
+    }
+}
+```
+
+### 2. Middleware de Autorización
+```php
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class CheckUserRole
+{
+    public function handle(Request $request, Closure $next, ...$roles)
+    {
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $user = Auth::user();
+        
+        if (!$user->hasAnyRole($roles)) {
+            abort(403, 'Acceso no autorizado');
+        }
+
+        return $next($request);
+    }
+}
+```
+
+## 🗄️ Base de Datos y Migraciones
+
+### 1. Estructura de Migraciones
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('clients', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->string('phone')->nullable();
+            $table->foreignId('seller_id')->constrained('user_sellers')->onDelete('cascade');
+            $table->string('status')->default('active');
+            $table->foreignId('contact_method_id')->constrained('contact_methods');
+            $table->foreignId('geo_province_id')->constrained('geo_provinces');
+            $table->foreignId('geo_department_id')->constrained('geo_departments');
+            $table->foreignId('geo_district_id')->constrained('geo_districts');
+            $table->text('notes')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+            
+            // Índices para optimización
+            $table->index(['seller_id', 'status']);
+            $table->index(['email']);
+            $table->index(['created_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('clients');
+    }
+};
+```
+
+### 2. Seeders y Factories
+```php
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Client;
+use App\Models\UserSeller;
+use App\Models\GeoProvince;
+use App\Models\ContactMethod;
+use Illuminate\Database\Seeder;
+
+class ClientSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $sellers = UserSeller::all();
+        $provinces = GeoProvince::all();
+        $contactMethods = ContactMethod::all();
+
+        Client::factory(100)->create()->each(function ($client) use ($sellers, $provinces, $contactMethods) {
+            $client->update([
+                'seller_id' => $sellers->random()->id,
+                'geo_province_id' => $provinces->random()->id,
+                'contact_method_id' => $contactMethods->random()->id,
+            ]);
+        });
+    }
+}
+```
+
+## 🚀 API y Respuestas
+
+### 1. Controladores de API
+```php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Client;
+use App\Http\Resources\ClientResource;
+use App\Http\Requests\ClientRequest;
+use App\Services\ClientService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ClientApiController extends Controller
+{
+    public function __construct(
+        private ClientService $clientService
+    ) {}
+
+    public function index(Request $request): JsonResponse
+    {
+        $clients = Client::query()
+            ->when($request->search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+            })
+            ->when($request->seller_id, function ($query, $sellerId) {
+                $query->where('seller_id', $sellerId);
+            })
+            ->with(['seller', 'province', 'department', 'district'])
+            ->paginate($request->per_page ?? 15);
+
+        return response()->json([
+            'data' => ClientResource::collection($clients),
+            'meta' => [
+                'current_page' => $clients->currentPage(),
+                'last_page' => $clients->lastPage(),
+                'per_page' => $clients->perPage(),
+                'total' => $clients->total(),
+            ],
+        ]);
+    }
+
+    public function store(ClientRequest $request): JsonResponse
+    {
+        try {
+            $client = $this->clientService->createClientWithActivities($request->validated());
+            
+            return response()->json([
+                'message' => 'Cliente creado exitosamente',
+                'data' => new ClientResource($client),
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al crear cliente',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+}
+```
+
+### 2. Requests de Validación
+```php
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class ClientRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // La autorización se maneja en las políticas
+    }
+
+    public function rules(): array
+    {
+        $clientId = $this->route('client');
+        
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('clients')->ignore($clientId),
+            ],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'seller_id' => ['required', 'exists:user_sellers,id'],
+            'status' => ['required', 'in:active,inactive,prospect,client'],
+            'contact_method_id' => ['required', 'exists:contact_methods,id'],
+            'geo_province_id' => ['required', 'exists:geo_provinces,id'],
+            'geo_department_id' => ['required', 'exists:geo_departments,id'],
+            'geo_district_id' => ['required', 'exists:geo_districts,id'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'El nombre es obligatorio',
+            'email.required' => 'El email es obligatorio',
+            'email.email' => 'El email debe tener un formato válido',
+            'email.unique' => 'Este email ya está registrado',
+            'seller_id.required' => 'Debe seleccionar un vendedor',
+            'seller_id.exists' => 'El vendedor seleccionado no existe',
+        ];
+    }
+}
+```
+
+## 📊 Jobs y Colas
+
+### 1. Jobs Asíncronos
+```php
+<?php
+
+namespace App\Jobs;
+
+use App\Models\Client;
+use App\Services\EmailService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+
+class SendClientWelcomeEmail implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public function __construct(
+        private Client $client
+    ) {}
+
+    public function handle(EmailService $emailService): void
+    {
+        try {
+            $emailService->sendWelcomeEmail($this->client);
+            
+            Log::info('Email de bienvenida enviado', [
+                'client_id' => $this->client->id,
+                'email' => $this->client->email,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al enviar email de bienvenida', [
+                'client_id' => $this->client->id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            throw $e;
+        }
+    }
+
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('Job de email falló', [
+            'client_id' => $this->client->id,
+            'error' => $exception->getMessage(),
+        ]);
+    }
+}
+```
+
+### 2. Configuración de Colas
+```php
+// config/queue.php
+'default' => env('QUEUE_CONNECTION', 'redis'),
+
+'connections' => [
+    'redis' => [
+        'driver' => 'redis',
+        'connection' => 'default',
+        'queue' => env('REDIS_QUEUE', 'default'),
+        'retry_after' => 90,
+        'block_for' => null,
+    ],
+],
+```
+
+## 🔧 Configuración y Optimización
+
+### 1. Configuración de Caché
+```php
+// config/cache.php
+'default' => env('CACHE_DRIVER', 'redis'),
+
+'stores' => [
+    'redis' => [
+        'driver' => 'redis',
+        'connection' => 'cache',
+        'lock_connection' => 'default',
+    ],
+],
+```
+
+### 2. Optimización de Consultas
+```php
+// En modelos, usar with() para eager loading
+public static function getClientsWithRelations()
+{
+    return static::with([
+        'seller',
+        'province',
+        'department',
+        'district',
+        'activities' => function ($query) {
+            $query->latest()->limit(5);
+        },
+    ])->get();
+}
+
+// Usar índices en base de datos
+// Implementar caché para consultas costosas
+public function getActiveClientsCount(): int
+{
+    return Cache::remember('active_clients_count', 3600, function () {
+        return $this->where('status', 'active')->count();
+    });
+}
+```
+
+## 🧪 Testing
+
+### 1. Tests de Modelos
+```php
+<?php
+
+namespace Tests\Unit;
+
+use App\Models\Client;
+use App\Models\UserSeller;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ClientTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_can_create_client(): void
+    {
+        $seller = UserSeller::factory()->create();
+        
+        $clientData = [
+            'name' => 'Juan Pérez',
+            'email' => 'juan@example.com',
+            'phone' => '123456789',
+            'seller_id' => $seller->id,
+            'status' => 'active',
+            // ... otros campos requeridos
+        ];
+
+        $client = Client::create($clientData);
+
+        $this->assertInstanceOf(Client::class, $client);
+        $this->assertEquals('Juan Pérez', $client->name);
+        $this->assertEquals('juan@example.com', $client->email);
+    }
+
+    public function test_client_belongs_to_seller(): void
+    {
+        $seller = UserSeller::factory()->create();
+        $client = Client::factory()->create(['seller_id' => $seller->id]);
+
+        $this->assertInstanceOf(UserSeller::class, $client->seller);
+        $this->assertEquals($seller->id, $client->seller->id);
+    }
+}
+```
+
+### 2. Tests de API
+```php
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Client;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ClientApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_can_get_clients_list(): void
+    {
+        $user = User::factory()->create();
+        $clients = Client::factory(5)->create();
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/clients');
+
+        $response->assertStatus(200)
+                ->assertJsonCount(5, 'data');
+    }
+}
+```
+
+## 🚨 Seguridad y Validación
+
+### 1. Sanitización de Datos
+```php
+// En modelos, usar mutators para sanitizar
+public function setNameAttribute($value): void
+{
+    $this->attributes['name'] = ucwords(strtolower(trim($value)));
+}
+
+public function setEmailAttribute($value): void
+{
+    $this->attributes['email'] = strtolower(trim($value));
+}
+```
+
+### 2. Protección CSRF
+```php
+// En web.php, todas las rutas web tienen protección CSRF automática
+// Para APIs, usar middleware 'api' que no requiere CSRF
+```
+
+## 📝 Logging y Monitoreo
+
+### 1. Configuración de Logs
+```php
+// config/logging.php
+'channels' => [
+    'stack' => [
+        'driver' => 'stack',
+        'channels' => ['single', 'daily'],
+        'ignore_exceptions' => false,
+    ],
+    'daily' => [
+        'driver' => 'daily',
+        'path' => storage_path('logs/laravel.log'),
+        'level' => env('LOG_LEVEL', 'debug'),
+        'days' => 14,
+    ],
+],
+```
+
+### 2. Logging Personalizado
+```php
+// En servicios y controladores
+Log::channel('daily')->info('Cliente creado', [
+    'client_id' => $client->id,
+    'user_id' => auth()->id(),
+    'ip_address' => request()->ip(),
+]);
+
+Log::channel('daily')->error('Error en proceso', [
+    'error' => $e->getMessage(),
+    'stack_trace' => $e->getTraceAsString(),
+]);
+```
+
+## 🔄 Comandos Artisan
+
+### 1. Comandos Personalizados
+```php
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\Client;
+use App\Services\ClientService;
+use Illuminate\Console\Command;
+
+class ProcessClientFollowUps extends Command
+{
+    protected $signature = 'clients:process-follow-ups';
+    protected $description = 'Procesar seguimientos de clientes pendientes';
+
+    public function handle(ClientService $clientService): int
+    {
+        $this->info('Procesando seguimientos de clientes...');
+
+        $pendingClients = Client::where('status', 'prospect')
+            ->where('last_activity_at', '<=', now()->subDays(7))
+            ->get();
+
+        $bar = $this->output->createProgressBar($pendingClients->count());
+
+        foreach ($pendingClients as $client) {
+            $clientService->createFollowUpActivity($client);
+            $bar->advance();
+        }
+
+        $bar->finish();
+        $this->newLine();
+        $this->info("Procesados {$pendingClients->count()} clientes");
+
+        return Command::SUCCESS;
+    }
+}
+```
+
+## 📚 Recursos Adicionales
+
+### 1. Paquetes Utilizados
+- `laravel/framework`: Framework principal
+- `laravel/tinker`: REPL para desarrollo
+- `laravel/sail`: Entorno Docker para desarrollo
+- `laravel/pint`: Formateador de código
+
+### 2. Enlaces Útiles
+- [Documentación oficial de Laravel](https://laravel.com/docs)
+- [Laravel Best Practices](https://github.com/alexeymezenin/laravel-best-practices)
+- [Laravel Testing](https://laravel.com/docs/testing)
+
+---
+
+**Nota**: Este documento debe actualizarse conforme evolucione el proyecto y se implementen nuevas funcionalidades. Mantener consistencia con las reglas de Filament para una integración óptima.
+
