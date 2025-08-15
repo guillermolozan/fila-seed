@@ -56,10 +56,10 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->viteTheme('resources/css/filament/admin/theme.css')
-            ->brandLogo(fn () => $this->getBrandLogo('text-red-600', 'md'))  // Cambiar aquí: color y tamaño
+            // ->brandLogo(fn () => $this->getBrandLogo('text-red-600', 'md'))  // Cambiar aquí: color y tamaño
             ->brandLogoHeight('2rem')
             ->favicon(asset('/images/incapower_ico2.svg'))
-            ->brandName('CRM Incapower')
+            ->brandName('CRM')
             ->sidebarWidth('250px')
             ->maxContentWidth('full')
             ->spa()
