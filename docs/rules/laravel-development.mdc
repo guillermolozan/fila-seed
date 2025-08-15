@@ -1,0 +1,35 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+# Reglas de Desarrollo Laravel
+
+## Estructura de Archivos
+- **Modelos**: En `laravel/app/Models/` con namespace `App\Models`
+- **Controladores**: En `laravel/app/Http/Controllers/` con namespace `App\Http\Controllers`
+- **Recursos Filament**: En `laravel/app/Filament/Resources/` con namespace `App\Filament\Resources`
+- **Páginas Filament**: En `laravel/app/Filament/Pages/` con namespace `App\Filament\Pages`
+
+## Convenciones de Código
+- Usar PSR-4 autoloading
+- Seguir convenciones de Laravel para nombres de archivos y directorios
+- Usar Eloquent ORM para operaciones de base de datos
+- Implementar validación en Form Requests cuando sea apropiado
+- Usar Resource Controllers para operaciones CRUD estándar
+
+## Filament y Librerías
+- Crear recursos usando `php artisan make:filament-resource`
+- Crear páginas usando `php artisan make:filament-page`
+- Seguir las mejores prácticas de Filament para formularios y tablas
+- Usar políticas de autorización con **Filament Shield** (`bezhansalleh/filament-shield`)
+- Implementar editor de texto rico con **Filament TinyEditor** (`amidesfahani/filament-tinyeditor`)
+- Usar **Laravel Tinker** (`laravel/tinker`) para debugging y exploración de datos
+
+## Base de Datos
+- Crear migraciones con `php artisan make:migration`
+- Usar seeders para datos de prueba
+- Implementar factories para testing
+- Usar soft deletes cuando sea apropiado
+

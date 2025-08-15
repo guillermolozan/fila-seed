@@ -1,0 +1,40 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+# Estructura del Proyecto Laravel con Filament
+
+Este es un proyecto Laravel 11 con Filament 3 preconfigurado para sistemas CRM.
+
+## Librerías Principales
+- **Filament** - Panel de administración
+- **Filament Shield** - Sistema de permisos y roles
+- **Filament TinyEditor** - Editor de texto rico
+- **Laravel Tinker** - REPL para debugging
+- **Laravel Pail** - Monitoreo de logs en tiempo real
+- **Laravel Pint** - Formateo automático del código
+
+## Estructura Principal
+- **`laravel/`** - Directorio principal de la aplicación Laravel
+- **`Docs/`** - Documentación del proyecto (siempre crear documentos aquí)
+- **`temp/`** - Archivos temporales y programas de prueba (usar para tareas temporales)
+
+## Estructura Laravel
+- **`laravel/app/`** - Código principal de la aplicación
+  - **`app/Filament/`** - Recursos y páginas de Filament
+  - **`app/Models/`** - Modelos Eloquent
+  - **`app/Http/`** - Controladores y middleware
+- **`laravel/routes/`** - Definición de rutas
+- **`laravel/database/`** - Migraciones, seeders y factories
+- **`laravel/resources/`** - Vistas, assets y componentes frontend
+- **`laravel/config/`** - Archivos de configuración
+
+## Convenciones Importantes
+- **Documentación**: Siempre en carpeta `Docs/`
+- **Archivos temporales**: Siempre en carpeta `temp/`
+- **Nombres**: Funciones, clases, archivos y variables en inglés
+- **Comentarios**: En español
+- **Respuestas del chat**: En español
+

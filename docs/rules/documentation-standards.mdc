@@ -1,0 +1,40 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+# Estándares de Documentación
+
+## Ubicación de Documentos
+- **Siempre** crear documentos en la carpeta `Docs/`
+- **Nunca** crear documentación en otras ubicaciones
+- Usar subcarpetas organizadas por tema cuando sea apropiado
+
+## Tipos de Documentación
+- **`Docs/tech.md`** - Documentación técnica general
+- **`Docs/api.md`** - Documentación de APIs
+- **`Docs/setup.md`** - Guías de instalación y configuración
+- **`Docs/architecture.md`** - Arquitectura del sistema
+- **`Docs/deployment.md`** - Guías de deployment
+
+## Formato de Documentación
+- Usar Markdown para todos los documentos
+- Incluir ejemplos de código cuando sea apropiado
+- Mantener documentación actualizada con el código
+- Usar enlaces internos para referenciar otros documentos
+- Incluir diagramas cuando sea necesario (Mermaid, PlantUML)
+
+## Comentarios en Código
+- **Siempre** en español
+- Explicar la lógica de negocio compleja
+- Documentar métodos públicos con PHPDoc
+- Incluir ejemplos de uso cuando sea apropiado
+- Mantener comentarios actualizados con el código
+
+## Archivos Temporales
+- **Siempre** crear archivos temporales en la carpeta `temp/`
+- Usar para scripts de prueba, análisis o tareas temporales
+- Limpiar archivos temporales regularmente
+- No incluir en control de versiones
+

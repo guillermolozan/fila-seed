@@ -1,0 +1,36 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+# Reglas de Deployment y DevOps
+
+## Entorno de Desarrollo
+- **Mysql** para base de datos
+- **`.env`** para variables de entorno locales
+- **Composer** para gestión de dependencias PHP
+- **NPM** para dependencias frontend
+- **Laravel Pail** para monitoreo de logs en tiempo real
+- **Laravel Pint** para formateo automático del código
+
+## Scripts de Instalación
+- **`laravel/post-install.sh`** - Configuración post-instalación
+
+## Comandos de Desarrollo
+- `make install` - Instalación completa del proyecto
+- `make dev` - Ejecutar entorno de desarrollo
+- `make test` - Ejecutar tests
+- `make format` - Formatear código
+
+## Variables de Entorno
+- Configurar base de datos en `.env`
+- Configurar servicios externos (mail, cache, etc.)
+- Usar `.env.example` como plantilla
+- Nunca commitear archivos `.env` con credenciales
+
+## Docker (Sail)
+- Usar `./vendor/bin/sail up` para iniciar servicios
+- Configurar puertos en `docker-compose.yml`
+- Usar `sail artisan` en lugar de `php artisan` cuando Sail esté activo
+
