@@ -21,6 +21,12 @@ use Illuminate\Support\HtmlString;
 
 class AdminPanelProvider extends PanelProvider
 {
+
+    public function boot(): void
+    {
+        date_default_timezone_set(config('app.timezone'));
+    }
+    
     private function getBrandLogo(string $colorClass = 'text-orange-500', string $size = 'md'): HtmlString
     {
 
